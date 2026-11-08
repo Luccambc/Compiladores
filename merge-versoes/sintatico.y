@@ -18,6 +18,16 @@ extern FILE *yyout;
 extern int yylineno;
 extern int erros_lexicos;
 
+
+
+// union que inclui os tipos aceitos pelo programa
+%code requires {
+  typedef enum {
+    T_INT,
+    T_FLOAT
+  } Tipo;
+}
+
 /* 1 quando o programa roda com -v: escreve o trace no arquivo de saida */
 int verbose = 0;
 int erros_sintaticos = 0;
@@ -43,6 +53,7 @@ static void erro_semantico(const char *msg)
  char* text;
  int ival;
  float fval;
+ Tipo tipo;
 }
 
 %token <text> ID
@@ -59,6 +70,7 @@ static void erro_semantico(const char *msg)
 %left '+' '-'
 %left '*' '/'
 
+%type <tipo> tipo
 
 %%
 /* Um arquivo contem um unico programa */
@@ -67,7 +79,12 @@ programa:	'{' lista_cmds '}'
 lista_cmds:	cmd
 		| lista_cmds cmd
 ;
-cmd:		ID '=' exp ';'
+cmd:		ID '=' exp ';' 
+        //TODO: aqui teria q armazenar na tabela de simbolos, por enquanto declaracao separada 
+        | tipo ID ';' {  if (verbose)
+                            fprintf(yyout, "[decl] linha %3d: %s %s\n", yylineno,
+                                    $1 == T_INT ? "int" : "float", $2);
+                          free($2); }
         | ENQUANTO '(' exp ')' '{' { prof_laco++; } lista_cmds '}' { prof_laco--; }
         /* faca-enquanto: o "do-while" do C ("faca" = "faça", sem cedilha) */
         | FACA '{' { prof_laco++; } lista_cmds '}' { prof_laco--; } ENQUANTO '(' exp ')' ';'
@@ -78,6 +95,10 @@ cmd:		ID '=' exp ';'
         | TERMINAR ';'  { if (prof_laco == 0 && prof_switch == 0)
                             erro_semantico("'terminar' fora de um laco ou 'switch'"); }
         | SWITCH '(' ID ')' ':' '{' { prof_switch++; } corpo_switch '}' { prof_switch--; }
+;
+
+tipo:     TIPO_INT        { $$ = T_INT; }
+        | TIPO_FLOAT      { $$ = T_FLOAT; }
 ;
 corpo_switch : lista_casos
              | lista_casos caso_padrao
