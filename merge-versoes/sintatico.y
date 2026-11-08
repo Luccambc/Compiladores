@@ -6,10 +6,12 @@
 /*  - <iteration-statement> : enquanto / faca-enquanto                  */
 /*  - <jump-statement>      : terminar (break) / pular (continue)       */
 /*  - expressoes: precedencia e associatividade por %left / %nonassoc   */
+/*  - <declaration>         : int / float, obrigatoria antes do uso     */
 %{
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tabela.h"
 int yylex(void);
 void yyerror(const char* s);
 
@@ -17,16 +19,6 @@ extern FILE *yyin;
 extern FILE *yyout;
 extern int yylineno;
 extern int erros_lexicos;
-
-
-
-// union que inclui os tipos aceitos pelo programa
-%code requires {
-  typedef enum {
-    T_INT,
-    T_FLOAT
-  } Tipo;
-}
 
 /* 1 quando o programa roda com -v: escreve o trace no arquivo de saida */
 int verbose = 0;
@@ -45,7 +37,36 @@ static void erro_semantico(const char *msg)
 	erros_semanticos++;
 	fprintf(yyout, "Erro semantico (linha %d): %s\n", yylineno, msg);
 }
+
+/* tabela de simbolos: toda variavel precisa ser declarada antes do uso */
+static void declarar(Tipo tipo, const char *nome)
+{
+	Simbolo *s = buscar(nome);
+	if (s) {
+		char msg[160];
+		snprintf(msg, sizeof msg, "variavel '%s' ja declarada na linha %d", nome, s->linha);
+		erro_semantico(msg);
+		return;
+	}
+	inserir(nome, tipo, yylineno);
+	if (verbose)
+		fprintf(yyout, "[decl] linha %3d: %s %s\n", yylineno, nome_do_tipo(tipo), nome);
+}
+
+static void verificar_uso(const char *nome)
+{
+	if (!buscar(nome)) {
+		char msg[128];
+		snprintf(msg, sizeof msg, "variavel '%s' nao declarada", nome);
+		erro_semantico(msg);
+	}
+}
 %}
+
+/* o tipo Tipo vem da tabela de simbolos e e usado no %union */
+%code requires {
+  #include "tabela.h"
+}
 
 %define parse.error detailed
 
@@ -65,12 +86,14 @@ static void erro_semantico(const char *msg)
 %token SE SENAO
 %token IGUAL DIFERENTE MENOR_IGUAL MAIOR_IGUAL
 %token SWITCH CASO PADRAO
+%token TIPO_INT TIPO_FLOAT
 
 %nonassoc '<' '>' IGUAL DIFERENTE MENOR_IGUAL MAIOR_IGUAL
 %left '+' '-'
 %left '*' '/'
 
 %type <tipo> tipo
+
 
 %%
 /* Um arquivo contem um unico programa */
@@ -79,12 +102,8 @@ programa:	'{' lista_cmds '}'
 lista_cmds:	cmd
 		| lista_cmds cmd
 ;
-cmd:		ID '=' exp ';' 
-        //TODO: aqui teria q armazenar na tabela de simbolos, por enquanto declaracao separada 
-        | tipo ID ';' {  if (verbose)
-                            fprintf(yyout, "[decl] linha %3d: %s %s\n", yylineno,
-                                    $1 == T_INT ? "int" : "float", $2);
-                          free($2); }
+cmd:		tipo ID ';'	{ declarar($1, $2); }		/* declaracao */
+        | ID '=' exp ';'	{ verificar_uso($1); }		/* atribuicao */
         | ENQUANTO '(' exp ')' '{' { prof_laco++; } lista_cmds '}' { prof_laco--; }
         /* faca-enquanto: o "do-while" do C ("faca" = "faça", sem cedilha) */
         | FACA '{' { prof_laco++; } lista_cmds '}' { prof_laco--; } ENQUANTO '(' exp ')' ';'
@@ -94,12 +113,12 @@ cmd:		ID '=' exp ';'
                             erro_semantico("'pular' fora de um laco"); }
         | TERMINAR ';'  { if (prof_laco == 0 && prof_switch == 0)
                             erro_semantico("'terminar' fora de um laco ou 'switch'"); }
-        | SWITCH '(' ID ')' ':' '{' { prof_switch++; } corpo_switch '}' { prof_switch--; }
+        | SWITCH '(' ID ')' ':' '{' { verificar_uso($3); prof_switch++; } corpo_switch '}' { prof_switch--; }
+;
+tipo:     TIPO_INT        { $$ = TIPO_INTEIRO; }
+        | TIPO_FLOAT      { $$ = TIPO_REAL; }
 ;
 
-tipo:     TIPO_INT        { $$ = T_INT; }
-        | TIPO_FLOAT      { $$ = T_FLOAT; }
-;
 corpo_switch : lista_casos
              | lista_casos caso_padrao
 ;
@@ -113,7 +132,7 @@ caso: CASO exp ':' '{' lista_cmds '}'
 caso_padrao: PADRAO ':' '{' lista_cmds '}'
 ;
 
-exp:	ID
+exp:	ID		{ verificar_uso($1); }
       | INTEIRO
       | REAL
       | exp '+' exp
@@ -174,6 +193,9 @@ int main (int argc, char **argv)
 	printf("Analise lexica e sintatica...\n");
 	int resultado = yyparse();
 	int ok = (resultado == 0 && erros_lexicos == 0 && erros_semanticos == 0);
+
+	if (verbose)
+		imprimir_tabela(yyout);
 
 	if (ok)
 		fprintf(yyout, "programa analisado com sucesso\n");

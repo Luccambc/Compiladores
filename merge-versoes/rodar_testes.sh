@@ -3,7 +3,7 @@
 # e confere se o resultado bate com o esperado (ok ou erro).
 # Uso: ./rodar_testes.sh [arquivo]   (padrao: testes.txt)
 ARQ=${1:-testes.txt}
-bison -d sintatico.y && flex lexico.l && gcc sintatico.tab.c lex.yy.c -o comp || exit 1
+make -s || exit 1
 DIR=$(mktemp -d)
 awk -v dir="$DIR" '
   /^### / { n++; f = sprintf("%s/caso%03d.txt", dir, n); sub(/^### /, ""); print > (dir "/cabecalho" sprintf("%03d", n)); next }

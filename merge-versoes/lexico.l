@@ -45,8 +45,7 @@ REAL_LIT ({NUM}+\.{NUM}*|\.{NUM}+)
 ">="       { TOKEN("MAIOR_IGUAL", MAIOR_IGUAL); }
 [-+*/()={};<>:]  { TOKEN("simbolo", yytext[0]); }
 
-
-"int"      { TOKEN("TIPO_INT", TIPO_INT); }
+"int"      { TOKEN("TIPO_INT", TIPO_INT); }       /* tipos das declaracoes */
 "float"    { TOKEN("TIPO_FLOAT", TIPO_FLOAT); }
 
 "se"       { TOKEN("SE", SE); }
