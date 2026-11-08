@@ -13,6 +13,9 @@ extern FILE *yyout;
 int erros_lexicos = 0;
 extern int verbose;
 
+/* preenche a posicao de cada token: e dai que vem os @n.first_line do parser */
+#define YY_USER_ACTION yylloc.first_line = yylloc.last_line = yylineno;
+
 /* registra o token no arquivo de saida (com -v) e o devolve ao parser */
 #define TOKEN(nome, t) \
   do { if (verbose) fprintf(yyout, "[lex] linha %3d: %-11s %s\n", yylineno, nome, yytext); \

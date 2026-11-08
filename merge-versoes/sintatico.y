@@ -12,8 +12,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tabela.h"
+#include "ast.h"
 int yylex(void);
 void yyerror(const char* s);
+
+/* raiz da AST, preenchida quando o parser reconhece o programa */
+No* raiz = NULL;
 
 extern FILE *yyin;
 extern FILE *yyout;
@@ -66,6 +70,7 @@ static void verificar_uso(const char *nome)
 /* o tipo Tipo vem da tabela de simbolos e e usado no %union */
 %code requires {
   #include "tabela.h"
+  #include "ast.h"
 }
 
 %define parse.error detailed
@@ -75,6 +80,7 @@ static void verificar_uso(const char *nome)
  int ival;
  float fval;
  Tipo tipo;
+ No* no;
 }
 
 %token <text> ID
@@ -94,58 +100,73 @@ static void verificar_uso(const char *nome)
 
 %type <tipo> tipo
 
+%type <no> programa lista_cmds cmd switch_inicio lista_casos caso caso_padrao exp bloco
 
 %%
 /* Um arquivo contem um unico programa */
-programa:	'{' lista_cmds '}'
+programa:	bloco { raiz = $$ = no_programa($1,@1.first_line);}
 ;
-lista_cmds:	cmd
-		| lista_cmds cmd
+
+bloco: '{' lista_cmds '}' {$$ = $2;}
 ;
-cmd:		tipo ID ';'	{ declarar($1, $2); }		/* declaracao */
-        | ID '=' exp ';'	{ verificar_uso($1); }		/* atribuicao */
-        | ENQUANTO '(' exp ')' '{' { prof_laco++; } lista_cmds '}' { prof_laco--; }
+
+lista_cmds:	cmd {$$ = $1; }
+		| lista_cmds cmd {$$ = lista_append($1,$2);}
+;
+
+/* acoes no meio da regra tambem contam na numeracao dos $n */
+cmd:		tipo ID ';'	{ declarar($1, $2); $$ = no_decl($1,$2,@1.first_line);}		/* declaracao */
+        | ID '=' exp ';'	{ verificar_uso($1); $$ = no_atrib($1,$3,@1.first_line);}		/* atribuicao */
+        | ENQUANTO '(' exp ')' { prof_laco++; } bloco { prof_laco--; $$ = no_enquanto($3,$6,@1.first_line);}
         /* faca-enquanto: o "do-while" do C ("faca" = "faça", sem cedilha) */
-        | FACA '{' { prof_laco++; } lista_cmds '}' { prof_laco--; } ENQUANTO '(' exp ')' ';'
-        | SE '(' exp ')' '{' lista_cmds '}'
-        | SE '(' exp ')' '{' lista_cmds '}' SENAO '{' lista_cmds '}'
+        | FACA { prof_laco++; } bloco { prof_laco--; } ENQUANTO '(' exp ')' ';' { $$ = no_faca($3,$7,@1.first_line);}
+        | SE '(' exp ')' bloco  { $$ = no_se($3,$5,NULL, @1.first_line);}
+
+        | SE '(' exp ')' bloco SENAO bloco { $$ = no_se($3,$5,$7, @1.first_line);}
+
         | PULAR ';'     { if (prof_laco == 0)
-                            erro_semantico("'pular' fora de um laco"); }
+                            erro_semantico("'pular' fora de um laco");
+                          $$ = no_pular(@1.first_line); }
         | TERMINAR ';'  { if (prof_laco == 0 && prof_switch == 0)
-                            erro_semantico("'terminar' fora de um laco ou 'switch'"); }
-        | SWITCH '(' ID ')' ':' '{' { verificar_uso($3); prof_switch++; } corpo_switch '}' { prof_switch--; }
+                            erro_semantico("'terminar' fora de um laco ou 'switch'");
+                          $$ = no_terminar(@1.first_line); }
+        | switch_inicio lista_casos '}' { prof_switch--; $$ = no_switch($1,$2,NULL,@1.first_line);}
+        | switch_inicio lista_casos caso_padrao '}' { prof_switch--; $$ = no_switch($1,$2,$3,@1.first_line);}
 ;
 tipo:     TIPO_INT        { $$ = TIPO_INTEIRO; }
         | TIPO_FLOAT      { $$ = TIPO_REAL; }
 ;
 
-corpo_switch : lista_casos
-             | lista_casos caso_padrao
-;
-lista_casos : caso
-            | lista_casos caso
+/* regra propria (em vez de acao no meio) para as duas formas de switch
+   compartilharem o inicio sem conflito; devolve a variavel da condicao */
+switch_inicio: SWITCH '(' ID ')' ':' '{' { verificar_uso($3); prof_switch++; $$ = no_var($3,@3.first_line);}
 ;
 
-caso: CASO exp ':' '{' lista_cmds '}'
+lista_casos : caso {$$ = $1;}
+            | lista_casos caso {$$ = lista_append($1,$2);}
 ;
 
-caso_padrao: PADRAO ':' '{' lista_cmds '}'
+caso: CASO exp ':' bloco {$$ = no_caso($2,$4,@1.first_line);}
 ;
 
-exp:	ID		{ verificar_uso($1); }
-      | INTEIRO
-      | REAL
-      | exp '+' exp
-      | exp '-' exp
-      | exp '*' exp
-      | exp '/' exp
-      | exp '<' exp
-      | exp '>' exp
-      | exp IGUAL exp
-      | exp DIFERENTE exp
-      | exp MENOR_IGUAL exp
-      | exp MAIOR_IGUAL exp
-      | '(' exp ')'
+caso_padrao: PADRAO ':' bloco {$$ = $3;}
+;
+
+/* a linha de uma operacao binaria e a do operador */
+exp:	ID		{ verificar_uso($1); $$ = no_var($1,@1.first_line);}
+      | INTEIRO		{ $$ = no_int($1,@1.first_line);}
+      | REAL		{ $$ = no_real($1,@1.first_line);}
+      | exp '+' exp		{ $$ = no_binop(OP_SOMA,$1,$3,@2.first_line);}
+      | exp '-' exp		{ $$ = no_binop(OP_SUB,$1,$3,@2.first_line);}
+      | exp '*' exp		{ $$ = no_binop(OP_MUL,$1,$3,@2.first_line);}
+      | exp '/' exp		{ $$ = no_binop(OP_DIV,$1,$3,@2.first_line);}
+      | exp '<' exp		{ $$ = no_binop(OP_MENOR,$1,$3,@2.first_line);}
+      | exp '>' exp		{ $$ = no_binop(OP_MAIOR,$1,$3,@2.first_line);}
+      | exp IGUAL exp		{ $$ = no_binop(OP_IGUAL,$1,$3,@2.first_line);}
+      | exp DIFERENTE exp	{ $$ = no_binop(OP_DIFERENTE,$1,$3,@2.first_line);}
+      | exp MENOR_IGUAL exp	{ $$ = no_binop(OP_MENOR_IGUAL,$1,$3,@2.first_line);}
+      | exp MAIOR_IGUAL exp	{ $$ = no_binop(OP_MAIOR_IGUAL,$1,$3,@2.first_line);}
+      | '(' exp ')'		{ $$ = $2;}
 ;
 %%
 static void uso(const char *prog)

@@ -158,3 +158,33 @@ begin a = 1; end
 
 ### erro | tipo sem nome de variável
 { int; }
+
+### ok | tipo: declaração depois de um comando
+{ int a; a = 1; int b; b = a; }
+
+### ok | tipo: identificadores parecidos com int e float
+{ int inteiro; int int2; float floatX; int Int; float FLOAT; inteiro = 1; int2 = 2; floatX = 3; Int = 4; FLOAT = 5; }
+
+### erro | tipo: declaração com inicialização (ainda não suportada)
+{ int a = 1; }
+
+### erro | tipo: lista de identificadores (ainda não suportada)
+{ int a, b; }
+
+### erro | tipo: dois tipos na mesma declaração
+{ int float a; }
+
+### erro | tipo: número no lugar do identificador
+{ float 1; }
+
+### erro | tipo: palavra reservada no lugar do identificador
+{ int se; }
+
+### erro | tipo: int usado como identificador
+{ int = 1; }
+
+### erro | tipo: float usado em expressão
+{ int a; a = float + 1; }
+
+### erro | tipo: tipo desconhecido (char)
+{ char a; }

@@ -25,9 +25,9 @@ sintatico.tab.c sintatico.tab.h: sintatico.y
 lex.yy.c: lexico.l sintatico.tab.h
 	$(FLEX) $(FLEXFLAGS) -o lex.yy.c lexico.l
 
-# 3. compila e liga tudo (inclui a tabela de simbolos)
-$(ALVO): sintatico.tab.c lex.yy.c tabela.c tabela.h
-	$(CC) $(CFLAGS) -o $@ sintatico.tab.c lex.yy.c tabela.c
+# 3. compila e liga tudo (inclui a tabela de simbolos e a AST)
+$(ALVO): sintatico.tab.c lex.yy.c tabela.c tabela.h ast.c ast.h
+	$(CC) $(CFLAGS) -o $@ sintatico.tab.c lex.yy.c tabela.c ast.c
 
 run: $(ALVO)
 	./$(ALVO) -v $(ENTRADA) $(SAIDA)

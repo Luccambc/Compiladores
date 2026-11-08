@@ -42,8 +42,18 @@ No* no_var(char* nome, int linha){
 }
 
 
+/*no para declaracao de variavel: int a; */
+No* no_decl(Tipo tipo, char* nome, int linha){
+  No* n = criar_no(N_DECL, linha);
+  n->nome = nome;
+  n->tipo = tipo;
+
+  return n;
+}
+
+
 /*no para operacoes binarias como : a+b, a-b */
-No* no_binop(int op, No* esq, No* dir, int linha){
+No* no_binop(OpBin op, No* esq, No* dir, int linha){
   No* n = criar_no(N_BINOP, linha);
   n->op = op;
   n->a = esq;
@@ -80,11 +90,18 @@ No* no_switch(No* condicao, No* lista_casos, No* caso_padrao, int linha){
   return n;
 }
 
+/* no para caso exp : {cmd}, encadeado em lista pelo campo "prox"*/
+No* no_caso(No* expressao, No* lista_comandos, int linha){
+  No* n = criar_no(N_CASO, linha);
+  n->a = expressao;
+  n->b = lista_comandos;
+  return n;
+}
 
 
 /* no para enquanto(exp) {cmd}*/
 No* no_enquanto(No* condicao, No* lista_comandos, int linha){
-  No* n = criar_no(N_SE, linha);
+  No* n = criar_no(N_ENQUANTO, linha);
   n->a = condicao;
   n->b = lista_comandos;
   return n;
@@ -94,10 +111,30 @@ No* no_enquanto(No* condicao, No* lista_comandos, int linha){
 
 /* no para faca {cmd} enquanto(exp)*/
 No* no_faca(No* lista_comandos, No* condicao, int linha){
-  No* n = criar_no(N_SE, linha);
+  No* n = criar_no(N_FACA, linha);
   n->a = lista_comandos;
   n->b = condicao;
   return n;
 }
 
+/* nos para pular; e terminar;*/
+No* no_pular(int linha){
+  return criar_no(N_PULAR, linha);
+}
 
+No* no_terminar(int linha){
+  return criar_no(N_TERMINAR, linha);
+}
+
+
+No* lista_append(No* lista, No* comando){
+  assert(lista != NULL);
+
+  No* iterador = lista;
+
+  while(iterador->prox) iterador = iterador->prox;
+
+  iterador->prox = comando;
+
+  return lista;
+}

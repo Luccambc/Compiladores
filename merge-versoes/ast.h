@@ -14,18 +14,36 @@
 
 
 typedef enum {
-  N_PROGRAMA,   /* lista de comandos */
+  N_PROGRAMA,   /* a = lista de comandos */
   N_INTEIRO,    /* ival */
   N_REAL,       /* fval */
   N_VAR,        /* nome da varivavel*/
-  N_BINOP,      /* operacao, a = esquerda, b = direita */
-  N_ATRIB,      /* variavel, a = expressao*/
+  N_DECL,       /* nome da variavel, tipo = tipo declarado*/
+  N_BINOP,      /* op, a = esquerda, b = direita */
+  N_ATRIB,      /* nome da variavel, a = expressao*/
   N_SE,         /* a = condicao, b = entao, c = senao (NULL caso seja so um se)*/
-  N_SWITCH,     /* a = condicao, b = lista de cases, c = caso padrao (NULL caso nao tenha)*/
+  N_SWITCH,     /* a = condicao, b = lista de N_CASO, c = comandos do padrao (NULL caso nao tenha)*/
+  N_CASO,       /* a = expressao do caso, b = lista de comandos*/
   N_ENQUANTO,   /* a = condicao, b = lista de comandos*/
   N_FACA,       /* a = lista de comandos, b = condicao*/
-
+  N_PULAR,      /* sem campos */
+  N_TERMINAR,   /* sem campos */
 } TipoNo;
+
+/* operacoes binarias: independem dos tokens do bison,
+   entao as fases depois do parser so precisam incluir ast.h */
+typedef enum {
+  OP_SOMA,
+  OP_SUB,
+  OP_MUL,
+  OP_DIV,
+  OP_MENOR,
+  OP_MAIOR,
+  OP_IGUAL,
+  OP_DIFERENTE,
+  OP_MENOR_IGUAL,
+  OP_MAIOR_IGUAL,
+} OpBin;
 
 
 typedef struct No {
@@ -34,7 +52,7 @@ typedef struct No {
     int ival;   /* caso o no contenha um valor inteiro*/
     float fval; /* caso o no contenha um valor real*/
     char* nome; /* caso o no seja uma variavel (pegamos o tipo na tabela de simbolos)*/
-    int op;    /* codigo da operacao binaria*/
+    OpBin op;  /* codigo da operacao binaria*/
     };
   int linha; /* linha do codigo, para mensagens de erro*/
  
@@ -63,8 +81,11 @@ No* no_real(float valor, int linha);
 /*no para variavel*/
 No* no_var(char* nome, int linha);
 
+/*no para declaracao de variavel: int a; */
+No* no_decl(Tipo tipo, char* nome, int linha);
+
 /*no para operacoes binarias como : a+b, a-b */
-No* no_binop(int op, No* esq, No* dir, int linha);
+No* no_binop(OpBin op, No* esq, No* dir, int linha);
 
 /* no para atribucao de variavel*/
 No* no_atrib(char* nome, No* exp, int linha);
@@ -75,10 +96,22 @@ No* no_se(No* condicao, No* entao, No* senao,  int linha);
 /* no para switch(exp) {case exp : {} ... (padrao: {}) ou ()}*/
 No* no_switch(No* condicao, No* lista_casos, No* caso_padrao, int linha);
 
+/* no para caso exp : {cmd}, encadeado em lista pelo campo "prox"*/
+No* no_caso(No* expressao, No* lista_comandos, int linha);
+
 /* no para enquanto(exp) {cmd}*/
 No* no_enquanto(No* condicao, No* lista_comandos, int linha);
 
 /* no para faca {cmd} enquanto(exp)*/
 No* no_faca(No* lista_comandos, No* condicao, int linha);
 
+/* nos para pular; e terminar;*/
+No* no_pular(int linha);
+No* no_terminar(int linha);
+
+/* adiciona o novo comando a lista
+ * itera pelo campo "prox" dos nos na lista
+ * ao encontrar o ultimo (prox == NULL) -> prox = comando
+ * */
+No* lista_append(No* lista, No* comando);
 #endif
