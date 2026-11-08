@@ -1,0 +1,125 @@
+### ok | atribuição simples, inteiro e real
+{ a = 1; b = 2.5; c = .5; }
+
+### ok | expressão com precedência e parênteses
+{ x1 = (a + b) * c / 2 - d; }
+
+### ok | todos os comparadores
+{ se (a == b) { r = 1; } se (a != b) { r = 2; } se (a < b) { r = 3; } se (a > b) { r = 4; } se (a <= b) { r = 5; } se (a >= b) { r = 6; } }
+
+### ok | se-senao
+{ se (a > 0) { b = 1; } senao { b = 2; } }
+
+### ok | se aninhado (senão pertence ao se de fora, pelas chaves)
+{ se (a > 0) { se (b > 0) { c = 1; } } senao { c = 2; } }
+
+### ok | enquanto com pular e terminar
+{ enquanto (i < 10) { i = i + 1; se (i == 3) { pular; } se (i == 8) { terminar; } } }
+
+### ok | faça-enquanto (do-while)
+{ i = 0; faca { i = i + 1; } enquanto (i < 5); }
+
+### ok | equivalente ao "repeat ... until A >= 3" dos colegas de sala
+{ faca { a = a + 1; } enquanto (a < 3); }
+
+### ok | equivalente ao "for i := 1 to 10" dos colegas
+{ i = 1; enquanto (i <= 10) { x = x + i; i = i + 1; } }
+
+### ok | laços aninhados com terminar no laco de dentro
+{ faca { soma = soma + i; enquanto (i != 0) { terminar; } } enquanto (soma < 100); }
+
+### ok | switch com caso e padrão
+{ switch (op): { caso 1: { r = 10; terminar; } caso 2: { r = 20; } padrao: { r = 0; } } }
+
+### ok | terminar dentro de switch
+{ switch (op): { caso 1: { terminar; } } }
+
+### ok | comentários de linha e de bloco
+{
+  // comentario de linha
+  a = 1; /* comentario
+            de bloco */
+  b = a; /***/
+}
+
+### ok | identificadores com letras, dígitos e palavras parecidas com reservadas
+{ if1 = 1; fim = 2; senaoX = 3; enquanto2 = 4; }
+
+### ok | programa em varias linhas
+{
+  contador = 0;
+  enquanto (contador < 3) {
+    contador = contador + 1;
+  }
+}
+
+### erro | falta ponto e virgula
+{ a = 1 }
+
+### erro | atribuição com :=
+{ A = B; C := 3 + D * 2; }
+
+### erro | do-while em inglês (do ... while)
+{ do { A = 1; terminar; } while (A); }
+
+### erro | enquanto sem parenteses e com faca (sintaxe dos colegas)
+{ enquanto A <= 10 faca A = A + 1; }
+
+### erro | for ... to ... do (sintaxe Pascal)
+{ for i = 1 to 10 do { x = x + i; } }
+
+### erro | repeat ... until (sintaxe Pascal)
+{ repeat A = A + 1; until A >= 3; }
+
+### erro | begin ... end no lugar de chaves
+begin a = 1; end
+
+### erro | se sem parênteses
+{ se a > 1 { b = 2; } }
+
+### erro | se sem chaves
+{ se (a > 1) b = 2; }
+
+### erro | bloco vazio
+{ enquanto (a < 1) { } }
+
+### erro | terminar sem ponto e virgula
+{ enquanto (a < 2) { terminar } }
+
+### erro | faça-enquanto sem ponto e virgula
+{ faca { a = 1; } enquanto (a < 2) }
+
+### erro | faca sem enquanto
+{ faca { a = 1; } }
+
+### erro | comparação encadeada (%nonassoc)
+{ se (a < b < c) { a = 1; } }
+
+### erro | igual (=) usado como comparação
+{ se (a = b) { c = 1; } }
+
+### erro | expressão incompleta
+{ a = b +; }
+
+### erro | dois programas no mesmo arquivo
+{ a = 1; }
+{ b = 2; }
+
+### erro | semântico: pular fora de laco
+{ pular; }
+
+### erro | semântico: terminar fora de laco ou switch
+{ terminar; }
+
+### erro | semântico: pular dentro de switch (sem laco)
+{ switch (x): { caso 1: { pular; } } }
+
+### erro | lexico: caractere invalido
+{ a = 1 @ 2; }
+
+### erro | lexico: comentario nao fechado
+{ /* sem fechar
+  a = 1; }
+
+### erro | lexico: identificador com mais de 32 caracteres
+{ abcdefghijabcdefghijabcdefghijabc = 1; }
