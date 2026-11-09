@@ -1,11 +1,13 @@
 #!/bin/bash
 # Roda cada caso do testes.txt separadamente (um programa por arquivo)
 # e confere se o resultado bate com o esperado (ok ou erro).
-# Nao compila: rode "make" antes.
-# Uso: ./rodar_testes.sh [arquivo]   (padrao: testes.txt)
-ARQ=${1:-testes.txt}
-if [ ! -x ./comp ]; then
-  echo "Erro: ./comp nao encontrado. Rode \"make\" antes." >&2
+# Nao compila: use "make test", ou rode "make" antes.
+# Uso: ./rodar_testes.sh [arquivo]   (padrao: tests/testes.txt)
+RAIZ=$(cd "$(dirname "$0")" && pwd)
+COMP="$RAIZ/build/comp"
+ARQ=${1:-$RAIZ/tests/testes.txt}
+if [ ! -x "$COMP" ]; then
+  echo "Erro: $COMP nao encontrado. Rode \"make\" antes." >&2
   exit 1
 fi
 DIR=$(mktemp -d)
@@ -19,7 +21,7 @@ for cab in "$DIR"/cabecalho*; do
   linha=$(cat "$cab")
   esperado=$(echo "$linha" | cut -d'|' -f1 | tr -d ' ')
   descricao=$(echo "$linha" | cut -d'|' -f2- | sed 's/^ //')
-  ./comp "$DIR/caso$n.txt" "$DIR/saida$n.txt" > /dev/null
+  "$COMP" "$DIR/caso$n.txt" "$DIR/saida$n.txt" > /dev/null
   if [ $? -eq 0 ]; then obtido=ok; else obtido=erro; fi
   if [ "$obtido" = "$esperado" ]; then status="PASSOU"; passou=$((passou+1)); else status="FALHOU"; falhou=$((falhou+1)); fi
   printf "%-6s [esperado %-4s] %s\n" "$status" "$esperado" "$descricao"
@@ -28,3 +30,4 @@ done
 echo "-----"
 echo "Total: $passou passaram, $falhou falharam"
 rm -rf "$DIR"
+[ "$falhou" -eq 0 ]

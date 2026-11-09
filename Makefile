@@ -1,8 +1,10 @@
 # Compilador: flex + bison
 #
-#   make            gera o parser, o lexer e compila ./comp
-#   make run        roda ./comp em test.txt e escreve saida.txt (com trace -v)
-#   make clean      apaga os arquivos gerados
+#   make            gera o parser, o lexer e compila build/comp
+#   make test       compila, se preciso, e roda os testes
+#   make clean      apaga a pasta build/
+#
+# Os fontes ficam em src/ e tudo que e gerado fica em build/ 
 
 CC         = gcc
 CFLAGS     = -Wall -g
@@ -11,28 +13,32 @@ BISONFLAGS = -d -Wall -Wcounterexamples
 FLEX       = flex
 FLEXFLAGS  =
 
-ALVO    = comp
-ENTRADA = test.txt
-SAIDA   = saida.txt
+SRC     = src
+BUILD   = build
+ALVO    = $(BUILD)/comp
 
 all: $(ALVO)
 
+$(BUILD):
+	mkdir -p $(BUILD)
+
 # 1. bison gera o parser (.c) e o header com os tokens (.h)
-sintatico.tab.c sintatico.tab.h: sintatico.y
-	$(BISON) $(BISONFLAGS) sintatico.y
+$(BUILD)/sintatico.tab.c $(BUILD)/sintatico.tab.h: $(SRC)/sintatico.y | $(BUILD)
+	$(BISON) $(BISONFLAGS) -o $(BUILD)/sintatico.tab.c $(SRC)/sintatico.y
 
 # 2. flex gera o lexer; ele inclui sintatico.tab.h, entao vem depois do bison
-lex.yy.c: lexico.l sintatico.tab.h
-	$(FLEX) $(FLEXFLAGS) -o lex.yy.c lexico.l
+$(BUILD)/lex.yy.c: $(SRC)/lexico.l $(BUILD)/sintatico.tab.h
+	$(FLEX) $(FLEXFLAGS) -o $(BUILD)/lex.yy.c $(SRC)/lexico.l
 
-# 3. compila e liga tudo
-$(ALVO): sintatico.tab.c lex.yy.c
-	$(CC) $(CFLAGS) -o $@ sintatico.tab.c lex.yy.c
+# 3. compila e liga tudo (inclui a tabela de simbolos e a AST)
+#    -I$(SRC): os arquivos gerados em build/ incluem tabela.h e ast.h, que estao em src/
+$(ALVO): $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/tabela.h $(SRC)/ast.c $(SRC)/ast.h
+	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/ast.c
 
-run: $(ALVO)
-	./$(ALVO) -v $(ENTRADA) $(SAIDA)
+test: $(ALVO)
+	./rodar_testes.sh
 
 clean:
-	rm -f $(ALVO) sintatico.tab.c sintatico.tab.h lex.yy.c y.tab.c y.tab.h $(SAIDA)
+	rm -rf $(BUILD)
 
-.PHONY: all run clean
+.PHONY: all test clean
