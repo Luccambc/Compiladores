@@ -114,4 +114,13 @@ No* no_terminar(int linha);
  * ao encontrar o ultimo (prox == NULL) -> prox = comando
  * */
 No* lista_append(No* lista, No* comando);
+
+
+/*recebe o no raiz da arvore (tem que ser um N_PROGRAMA) e imprime a partir dele
+ */
+void imprimir_ast(No* no);
+
+/* imprime nos em lista */
+void imprimir_lista_ast(No* lista, const char* pre, const char* nome, int ultimo);
+
 #endif

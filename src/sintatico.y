@@ -171,17 +171,21 @@ exp:	ID		{ verificar_uso($1); $$ = no_var($1,@1.first_line);}
 %%
 static void uso(const char *prog)
 {
-	fprintf(stderr, "Uso: %s [-v] <entrada> <saida>\n", prog);
-	fprintf(stderr, "  -v  escreve no arquivo de saida cada token lido\n");
+	fprintf(stderr, "Uso: %s [-v] [-ast] <entrada> <saida>\n", prog);
+	fprintf(stderr, "  -v    escreve no arquivo de saida cada token lido\n");
+	fprintf(stderr, "  -ast  imprime a AST na saida padrao\n");
 }
 
 int main (int argc, char **argv)
 {
 	const char *entrada = NULL, *saida = NULL;
+	int mostrar_ast = 0;
 
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-v") == 0)
 			verbose = 1;
+		else if (strcmp(argv[i], "-ast") == 0)
+			mostrar_ast = 1;
 		else if (!entrada)
 			entrada = argv[i];
 		else if (!saida)
@@ -214,6 +218,9 @@ int main (int argc, char **argv)
 	printf("Analise lexica e sintatica...\n");
 	int resultado = yyparse();
 	int ok = (resultado == 0 && erros_lexicos == 0 && erros_semanticos == 0);
+
+	if (mostrar_ast && ok)
+		imprimir_ast(raiz);
 
 	if (verbose)
 		imprimir_tabela(yyout);

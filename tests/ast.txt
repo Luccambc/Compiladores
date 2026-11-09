@@ -1,0 +1,74 @@
+/* programa para conferir a AST: usa todos os tipos de no
+   rodar com: ./build/comp -ast tests/ast.txt build/saida.txt */
+{
+  // declaracoes (N_DECL)
+  int total;
+  int i;
+  int op;
+  float media;
+
+  // atribuicao com inteiro e real (N_ATRIB, N_INTEIRO, N_REAL)
+  total = 0;
+  i = 1;
+  op = 2;
+  media = 2.5;
+
+  // precedencia: * e / ficam abaixo de + e - na arvore (N_BINOP, N_VAR)
+  total = i + 2 * 3;
+
+  // parenteses: aqui o + fica abaixo do *
+  total = (i + 2) * 3;
+
+  // se sem senao e se com senao (N_SE)
+  se (total > 10) {
+    total = 10;
+  }
+
+  se (total == 10) {
+    media = .5;
+  } senao {
+    media = 1.0;
+  }
+
+  // enquanto com pular e terminar (N_ENQUANTO, N_PULAR, N_TERMINAR)
+  enquanto (i <= 10) {
+    i = i + 1;
+    se (i == 3) {
+      pular;
+    }
+    se (i >= 8) {
+      terminar;
+    }
+  }
+
+  // faca-enquanto (N_FACA)
+  faca {
+    i = i - 1;
+  } enquanto (i != 0);
+
+  // switch com padrao (N_SWITCH, N_CASO)
+  switch (op): {
+    caso 1: {
+      total = 100 / 2;
+      terminar;
+    }
+    caso 2: {
+      total = 200;
+    }
+    padrao: {
+      total = 0;
+    }
+  }
+
+  // switch sem padrao
+  switch (op): {
+    caso 1: {
+      total = 1;
+    }
+  }
+
+  // comparador que ainda nao apareceu
+  se (i < 1) {
+    i = 1;
+  }
+}
