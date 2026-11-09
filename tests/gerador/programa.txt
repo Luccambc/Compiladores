@@ -1,0 +1,28 @@
+/* programa do teste do gerador de asm
+   usa so o que o gerador ja implementa:
+   inteiros, + - * /, comparacoes, atribuicao, se e se-senao
+   (variaveis ainda nao tem espaco reservado, entao o asm so monta com gcc -c) */
+{
+  int a;
+
+  // precedencia: o * e calculado antes do +
+  a = 2 + 3 * 4;
+
+  // se sem senao
+  se (1 < 2) {
+    a = 10 - 4 / 2;
+  }
+
+  // se com senao, com mais de um comando no bloco
+  se (3 >= 5) {
+    a = 1;
+  } senao {
+    a = 0;
+    a = 7;
+  }
+
+  // leitura de variavel e <=
+  se (a <= 14) {
+    a = a * 2;
+  }
+}

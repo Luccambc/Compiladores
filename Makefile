@@ -2,6 +2,7 @@
 #
 #   make            gera o parser, o lexer e compila build/comp
 #   make test       compila, se preciso, e roda os testes
+#   make test-gerador  roda so o teste do gerador de asm
 #   make clean      apaga a pasta build/
 #
 # Os fontes ficam em src/ e tudo que e gerado fica em build/ 
@@ -32,13 +33,18 @@ $(BUILD)/lex.yy.c: $(SRC)/lexico.l $(BUILD)/sintatico.tab.h
 
 # 3. compila e liga tudo (inclui a tabela de simbolos e a AST)
 #    -I$(SRC): os arquivos gerados em build/ incluem tabela.h e ast.h, que estao em src/
-$(ALVO): $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/tabela.h $(SRC)/ast.c $(SRC)/ast.h
-	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/ast.c
+$(ALVO): $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/tabela.h $(SRC)/ast.c $(SRC)/ast.h $(SRC)/gerador.c $(SRC)/gerador.h
+	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/ast.c $(SRC)/gerador.c
 
 test: $(ALVO)
 	./rodar_testes.sh
+	./rodar_teste_gerador.sh
+
+# so o teste do gerador de codigo (compara o asm com tests/gerador/esperado.s)
+test-gerador: $(ALVO)
+	./rodar_teste_gerador.sh
 
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all test clean
+.PHONY: all test test-gerador clean

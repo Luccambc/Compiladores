@@ -13,6 +13,7 @@
 #include <string.h>
 #include "tabela.h"
 #include "ast.h"
+#include "gerador.h"
 int yylex(void);
 void yyerror(const char* s);
 
@@ -171,14 +172,15 @@ exp:	ID		{ verificar_uso($1); $$ = no_var($1,@1.first_line);}
 %%
 static void uso(const char *prog)
 {
-	fprintf(stderr, "Uso: %s [-v] [-ast] <entrada> <saida>\n", prog);
+	fprintf(stderr, "Uso: %s [-v] [-ast] [-asm <arquivo.s>] <entrada> <saida>\n", prog);
 	fprintf(stderr, "  -v    escreve no arquivo de saida cada token lido\n");
 	fprintf(stderr, "  -ast  imprime a AST na saida padrao\n");
+	fprintf(stderr, "  -asm  gera o assembly do programa em <arquivo.s>\n");
 }
 
 int main (int argc, char **argv)
 {
-	const char *entrada = NULL, *saida = NULL;
+	const char *entrada = NULL, *saida = NULL, *saida_asm = NULL;
 	int mostrar_ast = 0;
 
 	for (int i = 1; i < argc; i++) {
@@ -186,6 +188,8 @@ int main (int argc, char **argv)
 			verbose = 1;
 		else if (strcmp(argv[i], "-ast") == 0)
 			mostrar_ast = 1;
+		else if (strcmp(argv[i], "-asm") == 0 && i + 1 < argc)
+			saida_asm = argv[++i];
 		else if (!entrada)
 			entrada = argv[i];
 		else if (!saida)
@@ -221,6 +225,16 @@ int main (int argc, char **argv)
 
 	if (mostrar_ast && ok)
 		imprimir_ast(raiz);
+
+	if (saida_asm && ok) {
+		FILE *f = fopen(saida_asm, "w");
+		if (!f) {
+			perror(saida_asm);
+			return 1;
+		}
+		ast_para_asm(raiz, f);
+		fclose(f);
+	}
 
 	if (verbose)
 		imprimir_tabela(yyout);
