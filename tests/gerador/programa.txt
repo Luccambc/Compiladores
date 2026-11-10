@@ -1,17 +1,19 @@
 /* programa do teste do gerador de asm
    usa so o que o gerador ja implementa:
-   inteiros, + - * /, comparacoes, atribuicao, se e se-senao
-   (variaveis ainda nao tem espaco reservado, entao o asm so monta com gcc -c) */
+   inteiros, + - * /, comparacoes, atribuicao, se e se-senao, print
+   o programa e ligado e executado: a saida tem que bater com esperado_saida.txt */
 {
   int a;
-
+  int x;
   // precedencia: o * e calculado antes do +
   a = 2 + 3 * 4;
+  print(a);
 
   // se sem senao
   se (1 < 2) {
     a = 10 - 4 / 2;
   }
+  print(a);
 
   // se com senao, com mais de um comando no bloco
   se (3 >= 5) {
@@ -20,9 +22,12 @@
     a = 0;
     a = 7;
   }
+  print(a);
 
   // leitura de variavel e <=
   se (a <= 14) {
     a = a * 2;
   }
+  print(a);
+  print(a > 10);
 }

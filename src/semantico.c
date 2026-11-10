@@ -123,6 +123,9 @@ static void verificar_cmd(No* c)
 		}
 		verificar_lista(c->c);	/* padrao */
 		break;
+	case N_PRINT:
+		tipo_exp(c->a);
+		break;
 	default:
 		/* N_DECL, N_PULAR e N_TERMINAR nao tem expressoes */
 		break;

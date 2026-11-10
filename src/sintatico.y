@@ -95,6 +95,7 @@ static void verificar_uso(const char *nome)
 %token IGUAL DIFERENTE MENOR_IGUAL MAIOR_IGUAL
 %token SWITCH CASO PADRAO
 %token TIPO_INT TIPO_FLOAT
+%token PRINT
 
 %nonassoc '<' '>' IGUAL DIFERENTE MENOR_IGUAL MAIOR_IGUAL
 %left '+' '-'
@@ -132,6 +133,7 @@ cmd:		tipo ID ';'	{ declarar($1, $2); $$ = no_decl($1,$2,@1.first_line);}		/* de
         | TERMINAR ';'  { if (prof_laco == 0 && prof_switch == 0)
                             erro_semantico("'terminar' fora de um laco ou 'switch'");
                           $$ = no_terminar(@1.first_line); }
+        | PRINT '(' exp ')' ';' { $$ = no_print($3, @1.first_line);}
         | switch_inicio lista_casos '}' { prof_switch--; $$ = no_switch($1,$2,NULL,@1.first_line);}
         | switch_inicio lista_casos caso_padrao '}' { prof_switch--; $$ = no_switch($1,$2,$3,@1.first_line);}
 ;

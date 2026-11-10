@@ -2,8 +2,8 @@
 # Teste do gerador de codigo:
 #  1. compila tests/gerador/programa.txt com -asm
 #  2. compara o asm gerado com tests/gerador/esperado.s (tem que ser identico)
-#  3. monta o asm com "gcc -c" pra conferir que e asm valido
-#     (so monta, nao liga: as variaveis v_* ainda nao tem espaco reservado)
+#  3. monta e liga o asm com gcc
+#  4. roda o executavel e compara o que ele escreve com tests/gerador/esperado_saida.txt
 # Nao compila o compilador: use "make test-gerador", ou rode "make" antes.
 RAIZ=$(cd "$(dirname "$0")" && pwd)
 COMP="$RAIZ/build/comp"
@@ -30,10 +30,17 @@ else
   falhou=1
 fi
 
-if gcc -c "$TMP/saida.s" -o "$TMP/saida.o" 2> "$TMP/gcc.txt"; then
-  echo "PASSOU gerador: gcc monta o asm sem erro"
+if gcc "$TMP/saida.s" -o "$TMP/prog" 2> "$TMP/gcc.txt"; then
+  echo "PASSOU gerador: gcc monta e liga o asm sem erro"
+  if "$TMP/prog" > "$TMP/prog_saida.txt" && diff -u "$DIR_TESTE/esperado_saida.txt" "$TMP/prog_saida.txt" > "$TMP/diff_exec.txt"; then
+    echo "PASSOU gerador: executavel escreveu a saida esperada"
+  else
+    echo "FALHOU gerador: saida do executavel diferente da esperada (- esperado, + obtido)"
+    sed 's/^/    /' "$TMP/diff_exec.txt"
+    falhou=1
+  fi
 else
-  echo "FALHOU gerador: gcc nao conseguiu montar o asm"
+  echo "FALHOU gerador: gcc nao conseguiu montar/ligar o asm"
   sed 's/^/    /' "$TMP/gcc.txt"
   falhou=1
 fi

@@ -1,3 +1,9 @@
+# Testes lexicos e sintaticos: o programa e aceito (ok) ou rejeitado (erro)?
+# Formato: "### ok | descricao" ou "### erro | descricao", seguido do programa.
+# Linhas comecando com "## " ou "# " fora de um programa sao comentarios.
+
+## programas validos
+
 ### ok | atribuição simples, inteiro e real
 { int a; float b; float c; a = 1; b = 2.5; c = .5; }
 
@@ -55,6 +61,8 @@
   }
 }
 
+## erros sintaticos
+
 ### erro | falta ponto e virgula
 { int a; a = 1 }
 
@@ -107,51 +115,19 @@ begin a = 1; end
 { int a; int b; a = 1; }
 { b = 2; }
 
-### erro | semântico: pular fora de laco
-{ pular; }
+## erros lexicos
 
-### erro | semântico: terminar fora de laco ou switch
-{ terminar; }
-
-### erro | semântico: pular dentro de switch (sem laco)
-{ int x; switch (x): { caso 1: { pular; } } }
-
-### erro | lexico: caractere invalido
+### erro | caractere invalido
 { int a; a = 1 @ 2; }
 
-### erro | lexico: comentario nao fechado
+### erro | comentario nao fechado
 { int sem; int fechar; int a; /* sem fechar
   a = 1; }
 
-### erro | lexico: identificador com mais de 32 caracteres
+### erro | identificador com mais de 32 caracteres
 { int abcdefghijabcdefghijabcdefghijabc; }
 
-### ok | declaração com int e float
-{ int i; float media; i = 1; media = 2.5; }
-
-### ok | variável declarada e usada
-{ int a; int b; a = 10; b = a + 1; }
-
-### ok | declaração dentro de um bloco
-{ int x; x = 0; enquanto (x < 3) { int y; y = x; x = x + 1; } }
-
-### ok | variável usada na própria atribuição
-{ int a; a = 0; a = a + 1; }
-
-### erro | atribuição a variável não declarada
-{ a = 1; }
-
-### erro | variável usada sem declaração
-{ int c; c = x * 2; }
-
-### erro | variável declarada duas vezes
-{ int a; float a; }
-
-### erro | condição com variável não declarada
-{ int a; se (k > 0) { a = 1; } }
-
-### erro | switch com variável não declarada
-{ int a; switch (op): { caso 1: { a = 1; } } }
+## declaracoes
 
 ### erro | declaração sem ponto e vírgula
 { int a a = 1; }
@@ -189,47 +165,19 @@ begin a = 1; end
 ### erro | tipo: tipo desconhecido (char)
 { char a; }
 
-### ok | tipos: float recebe int
-{ float b; b = 1; }
+## print
 
-### ok | tipos: conta entre int e float guardada em float
-{ int a; float b; float c; a = 1; b = 2.5; c = a + b; }
+### ok | print de variavel e de expressao
+{ int a; a = 1; print(a); print(a * 2 + 1); print(a < 2); }
 
-### ok | tipos: conta só com int guardada em int
-{ int a; int b; a = 2; b = a * 3 + 1; }
+### erro | print sem parenteses
+{ int a; a = 1; print a; }
 
-### ok | tipos: divisão de int por int guardada em int
-{ int a; a = 7 / 2; }
+### erro | print sem ponto e virgula
+{ int a; a = 1; print(a) }
 
-### ok | tipos: comparação com float numa condição
-{ float m; m = 2.5; se (m > 1) { m = 0.5; } }
+### erro | print sem expressao
+{ print(); }
 
-### ok | tipos: switch com variável e casos int
-{ int op; op = 1; switch (op): { caso 1: { op = 2; } caso 1 + 1: { op = 3; } } }
-
-### erro | tipos: int recebe float
-{ int a; a = 2.5; }
-
-### erro | tipos: int recebe conta com float
-{ int a; float b; b = 1.5; a = b * 2; }
-
-### erro | tipos: int recebe divisão por real
-{ int a; a = 10 / 4.0; }
-
-### erro | tipos: switch com variável float
-{ float m; m = 1.0; switch (m): { caso 1: { m = 2.0; } } }
-
-### erro | tipos: caso com valor float
-{ int op; op = 1; switch (op): { caso 2.5: { op = 2; } } }
-
-### erro | semântico: divisão por zero inteiro
-{ int a; int b; b = 5; a = b / 0; }
-
-### erro | semântico: divisão por zero real
-{ float a; a = 2.5 / 0.0; }
-
-### erro | semântico: divisão por zero entre parênteses
-{ int a; a = (4 + 2) / (0); }
-
-### ok | semântico: divisão por número diferente de zero
-{ int a; float b; a = 10 / 2; b = 1.0 / 0.5; }
+### erro | print usado como variavel
+{ int print; }

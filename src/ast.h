@@ -28,6 +28,7 @@ typedef enum {
   N_FACA,       /* a = lista de comandos, b = condicao*/
   N_PULAR,      /* sem campos */
   N_TERMINAR,   /* sem campos */
+  N_PRINT,      /* a = expressao a ser impressa */
 } TipoNo;
 
 /* operacoes binarias: independem dos tokens do bison,
@@ -108,6 +109,9 @@ No* no_faca(No* lista_comandos, No* condicao, int linha);
 /* nos para pular; e terminar;*/
 No* no_pular(int linha);
 No* no_terminar(int linha);
+
+/* no para print(exp);*/
+No* no_print(No* exp, int linha);
 
 /* adiciona o novo comando a lista
  * itera pelo campo "prox" dos nos na lista

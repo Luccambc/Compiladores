@@ -2,6 +2,8 @@
 #include "tabela.h" 
 #include <stdarg.h> // pra ter funcao com parametros variaveis
 #include <assert.h>
+#include <stdint.h>
+#include <string.h> // memcpy
 
 
 
@@ -31,6 +33,10 @@ int ast_para_asm(No* raiz, FILE* out){
     
     percorrer_tabela(declara_variavel);
     add_inst(".section .rodata");
+    // formato usado pelo print: printf("%ld\n", valor)
+    fprintf(saida, "fmt_int: .string \"%%ld\\n\"\n");
+    // formato do print de float: printf("%f\n", (double)valor)
+    fprintf(saida, "fmt_float: .string \"%%f\\n\"\n");
     
     //section de codigo, declaramos como se fosse uma main em c, 
     //de brinde isso faz o gcc linkar libc pra gente, se quiser no futuro
@@ -76,7 +82,16 @@ void gera_comparacao(const char* comp){
   add_inst("movzbq %%al, %%rax");
 }
 
-void gera_op(OpBin op){
+// float de 32 bits: ucomiss 
+// flags de float sao as de "sem sinal": setb/seta em vez de setl/setg
+void gera_comparacao_float(const char* comp){
+  add_inst("ucomiss %%xmm1, %%xmm0");
+  add_inst("%s %%al", comp);
+  add_inst("movzbq %%al, %%rax");
+}
+
+
+void gera_op_int(OpBin op){
 switch (op) {
   case OP_SOMA: add_inst("addq %%rcx, %%rax"); break;
   case OP_SUB: add_inst("subq %%rcx, %%rax"); break;
@@ -92,16 +107,63 @@ switch (op) {
   case OP_MENOR_IGUAL: gera_comparacao("setle"); break;
   case OP_MAIOR_IGUAL: gera_comparacao("setge"); break;
 }
+
+
+}
+/* xxm0 = xxm0 op xxm1 
+ * conta: resultado volta pra eax (movd zera a metade de cima do rax)
+ * comparacao: resultado 0 ou 1 fica em rax, igual no int
+ */
+void gera_op_float(OpBin op){
+switch (op) {
+  case OP_SOMA: add_inst("addss %%xmm1, %%xmm0"); add_inst("movd %%xmm0, %%eax"); break;
+  case OP_SUB: add_inst("subss %%xmm1, %%xmm0"); add_inst("movd %%xmm0, %%eax"); break;
+  case OP_MUL: add_inst("mulss %%xmm1, %%xmm0"); add_inst("movd %%xmm0, %%eax"); break;
+  case OP_DIV: add_inst("divss %%xmm1, %%xmm0"); add_inst("movd %%xmm0, %%eax"); break;
+  case OP_MENOR: gera_comparacao_float("setb"); break;
+  case OP_MAIOR: gera_comparacao_float("seta"); break;
+  case OP_IGUAL: gera_comparacao_float("sete"); break;
+  case OP_DIFERENTE: gera_comparacao_float("setne"); break;
+  case OP_MENOR_IGUAL: gera_comparacao_float("setbe"); break;
+  case OP_MAIOR_IGUAL: gera_comparacao_float("setae"); break;
+}
 }
 
+
+
+/* floats sao de 32 bits mas ficam em slots de 8 bytes (pilha e variaveis)
+ * so os 32 bits de baixo importam: as instrucoes "ss" so leem eles,
+ * e sempre que um float volta pro rax usamos movd/movl, que zeram a metade de cima
+ *
+ * coloca no xmm o valor do registrador, convertendo pra float se for int
+ * ex: para_xmm("%rcx", "%ecx", TIPO_INTEIRO, "%xmm1")
+ */
+static void para_xmm(const char* r64, const char* r32, Tipo t, const char* xmm){
+  if (t == TIPO_INTEIRO) add_inst("cvtsi2ssq %s, %s", r64, xmm); // nome muito bonito gracas a deus
+  else                   add_inst("movd %s, %s", r32, xmm); 
+}
+
+/* converte o int do topo da pilha em float (bits do float no lugar) */
+static void topo_int_para_float(void){
+  add_inst("popq %%rax");
+  add_inst("cvtsi2ssq %%rax, %%xmm0");
+  add_inst("movd %%xmm0, %%eax");
+  add_inst("pushq %%rax");
+}
 
 void gera_exp(No* no){
   switch (no->tipo_no){
     case  N_INTEIRO:
       add_inst("pushq $%d", no->ival);
       break;
-    case  N_REAL: // nao vamos lidar com float por enquanto
-      break;
+    case  N_REAL:{
+      // empilha os bits do float; movl zera a metade de cima do rax
+      // (pushq $imm estenderia o sinal pros 64 bits)
+      uint32_t bits;
+      memcpy(&bits, &no->fval, sizeof bits);
+      add_inst("movl $0x%x, %%eax # %g", bits, no->fval);
+      add_inst("pushq %%rax");
+      break;}
     case  N_VAR:
       add_inst("pushq v_%s(%%rip)", no->nome);
       break;
@@ -109,11 +171,24 @@ void gera_exp(No* no){
       //primeiro calculamos os 2 lados da operacao
       gera_exp(no->a);
       gera_exp(no->b);
+      //nao tem pop de float, ent precisa passar por aqui primeiro
       add_inst("popq %%rcx");
       add_inst("popq %%rax");
-      gera_op(no->op);
-      add_inst("pushq %%rax"); 
-      break;
+      assert(no->tipo != TIPO_INDEFINIDO);
+      // decide pelos operandos e nao por no->tipo: comparacao sempre tem tipo int,
+      // mas 1.5 < 2.5 precisa de comparacao de float
+      if(no->a->tipo == TIPO_REAL || no->b->tipo == TIPO_REAL){
+        // se um dos lados for int ele e convertido pra float
+        para_xmm("%rax", "%eax", no->a->tipo, "%xmm0");
+        para_xmm("%rcx", "%ecx", no->b->tipo, "%xmm1");
+        gera_op_float(no->op);
+      }
+      else{
+        gera_op_int(no->op);
+      }
+
+    add_inst("pushq %%rax");
+    break;
 
     default:
       break;
@@ -136,6 +211,14 @@ void gera_comandos(No*no){
 void gera_cond(No* cond, int rotulo_jump){
   gera_exp(cond); //resultado no topo da pilha
   add_inst("popq %%rax"); 
+  if(cond->tipo == TIPO_REAL){
+    // float e falso se == 0.0 (inclui -0.0, que tem o bit de sinal ligado)
+    add_inst("movd %%eax, %%xmm0");
+    add_inst("xorps %%xmm1, %%xmm1"); //zera xmm1 pra compararmos xmm0 com 0.0 (ou -0.0)
+    add_inst("ucomiss %%xmm1, %%xmm0");
+    add_inst("je .L%d", rotulo_jump);
+    return;
+  }
   add_inst("testq %%rax, %%rax");
   add_inst("je .L%d", rotulo_jump); // verifica flag zf (jump se eax == 0, no caso false)
 }
@@ -153,6 +236,9 @@ void gera_comando(No* no){
       break;
     case  N_ATRIB:
       gera_exp(no->a); // var = no->a;
+      // variavel float recebendo int: converte antes de guardar
+      if(no->tipo == TIPO_REAL && no->a->tipo == TIPO_INTEIRO)
+        topo_int_para_float();
       add_inst("popq v_%s(%%rip)",no->nome); // tira o resultado da pilha e guarda na variavel
       break;
     case  N_SE:
@@ -289,6 +375,29 @@ void gera_comando(No* no){
     case  N_TERMINAR:
       assert(rotulo_terminar != -1); //terminar tem q ser dentro de um escopo, analisadores devem ver isso
       add_inst("jmp .L%d", rotulo_terminar);
+      break;
+    case  N_PRINT:
+      /* printf("%ld\n", valor) ou printf("%f\n", valor) da libc
+       * convencao de chamada: 1o argumento em rdi, 2o em rsi,
+       * argumentos float vao em xmm0, xmm1... sempre como double
+       * al = numero de argumentos float
+       * a pilha precisa estar alinhada em 16 no call: entre comandos ela
+       * sempre esta (so tem o push rbp do inicio), e o valor ja saiu com o pop
+       */
+      gera_exp(no->a);
+      if(no->a->tipo == TIPO_REAL){
+        add_inst("popq %%rax");
+        add_inst("movd %%eax, %%xmm0");
+        add_inst("cvtss2sd %%xmm0, %%xmm0"); // printf so recebe double
+        add_inst("leaq fmt_float(%%rip), %%rdi");
+        add_inst("movl $1, %%eax");
+      }
+      else{
+        add_inst("popq %%rsi");
+        add_inst("leaq fmt_int(%%rip), %%rdi");
+        add_inst("xorl %%eax, %%eax");
+      }
+      add_inst("call printf@PLT");
       break;
     default:
       break;

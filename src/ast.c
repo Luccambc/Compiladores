@@ -126,6 +126,13 @@ No* no_terminar(int linha){
   return criar_no(N_TERMINAR, linha);
 }
 
+/* no para print(exp);*/
+No* no_print(No* exp, int linha){
+  No* n = criar_no(N_PRINT, linha);
+  n->a = exp;
+  return n;
+}
+
 
 No* lista_append(No* lista, No* comando){
   assert(lista != NULL);
@@ -223,6 +230,10 @@ static void imprimir_no(No* no, const char* pre, const char* nome, int ultimo){
       break;
     case  N_TERMINAR:
       printf("Terminar\n");
+      break;
+    case  N_PRINT:
+      printf("Print\n");
+      imprimir_no(no->a, p, NULL, 1);
       break;
     default:
       printf("No Nao Implementado\n");

@@ -1,0 +1,369 @@
+# Testes de execucao: o programa e compilado ate virar executavel,
+# roda, e o que ele escreve com print tem que ser igual a saida esperada.
+# Formato:
+#   ### descricao
+#   { programa }
+#   >>> saida
+#   uma linha por print
+# Linhas que comecam com "#" (sem ser "### ") sao comentarios.
+# Linhas em branco na saida esperada sao ignoradas.
+
+## print e expressoes
+
+### print de literal
+{ print(42); }
+>>> saida
+42
+
+### print de variavel
+{ int a; a = 7; print(a); }
+>>> saida
+7
+
+### precedencia, parenteses e associatividade a esquerda
+{ print(2 + 3 * 4); print((2 + 3) * 4); print(20 - 6 - 4); print(100 / 10 / 2); }
+>>> saida
+14
+20
+10
+5
+
+### divisao inteira trunca em direcao ao zero (como no C)
+{ print(7 / 2); print(0 - 7 / 2); print((0 - 7) / 2); print(9 / 3); }
+>>> saida
+3
+-3
+-3
+3
+
+### numeros negativos
+{ int a; a = 3 - 10; print(a); print(a * a); print(a * 2); }
+>>> saida
+-7
+49
+-14
+
+### comparadores dao 1 (verdadeiro) ou 0 (falso)
+{ int a; int b; a = 2; b = 5; print(a < b); print(a > b); print(a == b); print(a != b); print(a <= 2); print(a >= 3); }
+>>> saida
+1
+0
+0
+1
+1
+0
+
+### comparacao usada como valor numa conta
+{ int a; a = (3 < 5) + (2 == 2) + (1 > 4); print(a); }
+>>> saida
+2
+
+### variaveis sao independentes
+{ int a; int b; a = 1; b = 2; a = b; b = 5; print(a); print(b); }
+>>> saida
+2
+5
+
+### variavel usada na propria atribuicao
+{ int a; a = 1; a = a + a; a = a + a; a = a * 10 + a; print(a); }
+>>> saida
+44
+
+### declaracao no meio do programa
+{ int a; a = 3; print(a); int b; b = a * 2; print(b); }
+>>> saida
+3
+6
+
+## se / senao
+
+### se sem senao
+{ int a; a = 5; se (a > 3) { print(1); } se (a > 10) { print(2); } print(3); }
+>>> saida
+1
+3
+
+### se com senao, condicao sendo uma variavel (0 e falso, resto e verdadeiro)
+{ int a; a = 0; se (a) { print(1); } senao { print(2); } a = 4; se (a) { print(3); } senao { print(4); } }
+>>> saida
+2
+3
+
+### se aninhado
+{ int a; int b; a = 1; b = 0; se (a > 0) { se (b > 0) { print(1); } senao { print(2); } } senao { print(3); } }
+>>> saida
+2
+
+### cadeia de se-senao dentro de laco
+{ int n; n = 0; enquanto (n < 4) { se (n == 0) { print(100); } senao { se (n == 1) { print(200); } senao { print(300); } } n = n + 1; } }
+>>> saida
+100
+200
+300
+300
+
+## enquanto / faca
+
+### enquanto: soma de 1 a 10
+{ int i; int s; i = 1; s = 0; enquanto (i <= 10) { s = s + i; i = i + 1; } print(s); }
+>>> saida
+55
+
+### enquanto com condicao falsa de inicio nao executa
+{ int i; i = 10; enquanto (i < 5) { print(i); i = i + 1; } print(i); }
+>>> saida
+10
+
+### enquanto: contagem regressiva
+{ int i; i = 3; enquanto (i > 0) { print(i); i = i - 1; } }
+>>> saida
+3
+2
+1
+
+### enquanto com pular e terminar
+{ int i; i = 0; enquanto (i < 10) { i = i + 1; se (i == 3) { pular; } se (i == 6) { terminar; } print(i); } print(100); }
+>>> saida
+1
+2
+4
+5
+100
+
+### faca executa o bloco pelo menos uma vez
+{ int i; i = 10; faca { print(i); i = i + 1; } enquanto (i < 5); }
+>>> saida
+10
+
+### faca com pular vai para a condicao
+{ int i; i = 0; faca { i = i + 1; se (i == 2) { pular; } print(i); } enquanto (i < 4); }
+>>> saida
+1
+3
+4
+
+### faca com terminar
+{ int i; i = 0; faca { i = i + 1; se (i == 3) { terminar; } print(i); } enquanto (i < 10); print(i); }
+>>> saida
+1
+2
+3
+
+### lacos aninhados: tabuada 3x3
+{ int i; int j; i = 1; enquanto (i <= 3) { j = 1; enquanto (j <= 3) { print(i * j); j = j + 1; } i = i + 1; } }
+>>> saida
+1
+2
+3
+2
+4
+6
+3
+6
+9
+
+### terminar no laco de dentro so sai dele
+{ int i; int j; i = 0; enquanto (i < 3) { j = 0; enquanto (1) { se (j == i) { terminar; } j = j + 1; } print(i * 10 + j); i = i + 1; } }
+>>> saida
+0
+11
+22
+
+### pular no laco de dentro continua o laco de dentro
+{ int i; int j; i = 0; enquanto (i < 2) { i = i + 1; j = 0; enquanto (j < 3) { j = j + 1; se (j == 2) { pular; } print(i * 10 + j); } } }
+>>> saida
+11
+13
+21
+23
+
+## switch
+
+### switch: cada caso com terminar
+{ int op; op = 2; switch (op): { caso 1: { print(10); terminar; } caso 2: { print(20); terminar; } caso 3: { print(30); terminar; } } print(0); }
+>>> saida
+20
+0
+
+### switch: sem terminar continua no proximo caso (fallthrough)
+{ int op; op = 1; switch (op): { caso 1: { print(10); } caso 2: { print(20); } padrao: { print(99); } } }
+>>> saida
+10
+20
+99
+
+### switch: nenhum caso igual vai para o padrao
+{ int op; op = 7; switch (op): { caso 1: { print(10); terminar; } padrao: { print(99); } } }
+>>> saida
+99
+
+### switch: nenhum caso igual e sem padrao nao faz nada
+{ int op; op = 7; switch (op): { caso 1: { print(10); } caso 2: { print(20); } } print(0); }
+>>> saida
+0
+
+### switch: valor do caso pode ser uma expressao
+{ int op; op = 2; switch (op): { caso 1 + 1: { print(2); terminar; } padrao: { print(99); } } }
+>>> saida
+2
+
+### switch dentro de laco: terminar sai do switch, pular continua o laco
+{ int i; i = 0; enquanto (i < 4) { i = i + 1; switch (i): { caso 2: { pular; } caso 3: { print(33); terminar; } padrao: { print(i); } } print(i * 100); } }
+>>> saida
+1
+100
+33
+300
+4
+400
+
+## programas completos
+
+### fatorial de 10
+{ int n; int f; n = 10; f = 1; enquanto (n > 1) { f = f * n; n = n - 1; } print(f); }
+>>> saida
+3628800
+
+### fibonacci: 10 primeiros termos
+{ int a; int b; int t; int i; a = 0; b = 1; i = 0; enquanto (i < 10) { print(a); t = a + b; a = b; b = t; i = i + 1; } }
+>>> saida
+0
+1
+1
+2
+3
+5
+8
+13
+21
+34
+
+### mdc de 48 e 18 por subtracoes
+{ int a; int b; a = 48; b = 18; enquanto (a != b) { se (a > b) { a = a - b; } senao { b = b - a; } } print(a); }
+>>> saida
+6
+
+### primos ate 20 (resto calculado com a - (a / b) * b)
+{
+  int n; int d; int primo;
+  n = 2;
+  enquanto (n <= 20) {
+    primo = 1;
+    d = 2;
+    enquanto (d * d <= n) {
+      se (n - (n / d) * d == 0) { primo = 0; terminar; }
+      d = d + 1;
+    }
+    se (primo) { print(n); }
+    n = n + 1;
+  }
+}
+>>> saida
+2
+3
+5
+7
+11
+13
+17
+19
+
+### potencia: 2 elevado a 20
+{ int p; int i; p = 1; i = 0; enquanto (i < 20) { p = p * 2; i = i + 1; } print(p); }
+>>> saida
+1048576
+
+### inverter os digitos de 1234
+{ int n; int r; n = 1234; r = 0; enquanto (n > 0) { r = r * 10 + (n - (n / 10) * 10); n = n / 10; } print(r); }
+>>> saida
+4321
+
+### sequencia de collatz comecando em 6
+{
+  int n;
+  n = 6;
+  print(n);
+  enquanto (n != 1) {
+    se (n - (n / 2) * 2 == 0) { n = n / 2; } senao { n = 3 * n + 1; }
+    print(n);
+  }
+}
+>>> saida
+6
+3
+10
+5
+16
+8
+4
+2
+1
+
+## float
+
+### print de literal float
+{ print(2.5); print(.5); }
+>>> saida
+2.500000
+0.500000
+
+### contas com float
+{ float f; f = 1.5 + 2.25; print(f); print(f * 2.0); print(f - 0.75); print(f / 0.5); }
+>>> saida
+3.750000
+7.500000
+3.000000
+7.500000
+
+### conta misturando int e float: o int vira float
+{ int i; float f; i = 3; f = 0.25; print(1.5 + 2); print(3 * 0.5); print(7 / 2.0); print(i + f); }
+>>> saida
+3.500000
+1.500000
+3.500000
+3.250000
+
+### variavel float recebendo int (divisao inteira acontece antes da conversao)
+{ float f; f = 3; print(f); f = 7 / 2; print(f); }
+>>> saida
+3.000000
+3.000000
+
+### comparacoes de float
+{ print(1.5 < 2.5); print(2.5 < 1.5); print(1.5 == 1.5); print(1.5 != 1.5); print(2 >= 2.0); print(1.0 <= 0.5); print(3.5 > 3); }
+>>> saida
+1
+0
+1
+0
+1
+0
+1
+
+### comparacao de floats negativos
+{ float a; float b; a = 0.0 - 2.5; b = 0.0 - 1.0; print(a); print(a < b); print(a > b); }
+>>> saida
+-2.500000
+1
+0
+
+### float como condicao: 0.0 e -0.0 sao falsos
+{
+  float f;
+  f = 0.0;
+  se (f) { print(1); } senao { print(0); }
+  f = 0.5;
+  se (f) { print(1); } senao { print(0); }
+  f = 0.0 * (0.0 - 1.0);
+  se (f) { print(1); } senao { print(0); }
+}
+>>> saida
+0
+1
+0
+
+### laco com float
+{ float x; int n; x = 0.0; n = 0; enquanto (x < 1.0) { x = x + 0.25; n = n + 1; } print(n); print(x); }
+>>> saida
+4
+1.000000

@@ -60,6 +60,7 @@ REAL_LIT ({NUM}+\.{NUM}*|\.{NUM}+)
 "switch"   { TOKEN("SWITCH", SWITCH); }
 "caso"     { TOKEN("CASO", CASO); }
 "padrao"   { TOKEN("PADRAO", PADRAO); }
+"print"    { TOKEN("PRINT", PRINT); }
 
 {IDENTIFIER} {
   if (yyleng > MAX_ID_LEN) {

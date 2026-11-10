@@ -1,0 +1,103 @@
+# Testes semanticos: o programa e sintaticamente valido,
+# mas pode ter erro de declaracao, de tipo, etc.
+# Mesmo formato do sintatico.txt.
+
+## pular e terminar fora de lugar
+
+### erro | pular fora de laco
+{ pular; }
+
+### erro | terminar fora de laco ou switch
+{ terminar; }
+
+### erro | pular dentro de switch (sem laco)
+{ int x; switch (x): { caso 1: { pular; } } }
+
+## declaracao e uso de variaveis
+
+### ok | declaração com int e float
+{ int i; float media; i = 1; media = 2.5; }
+
+### ok | variável declarada e usada
+{ int a; int b; a = 10; b = a + 1; }
+
+### ok | declaração dentro de um bloco
+{ int x; x = 0; enquanto (x < 3) { int y; y = x; x = x + 1; } }
+
+### ok | variável usada na própria atribuição
+{ int a; a = 0; a = a + 1; }
+
+### erro | atribuição a variável não declarada
+{ a = 1; }
+
+### erro | variável usada sem declaração
+{ int c; c = x * 2; }
+
+### erro | variável declarada duas vezes
+{ int a; float a; }
+
+### erro | condição com variável não declarada
+{ int a; se (k > 0) { a = 1; } }
+
+### erro | switch com variável não declarada
+{ int a; switch (op): { caso 1: { a = 1; } } }
+
+## tipos
+
+### ok | float recebe int
+{ float b; b = 1; }
+
+### ok | conta entre int e float guardada em float
+{ int a; float b; float c; a = 1; b = 2.5; c = a + b; }
+
+### ok | conta só com int guardada em int
+{ int a; int b; a = 2; b = a * 3 + 1; }
+
+### ok | divisão de int por int guardada em int
+{ int a; a = 7 / 2; }
+
+### ok | comparação com float numa condição
+{ float m; m = 2.5; se (m > 1) { m = 0.5; } }
+
+### ok | switch com variável e casos int
+{ int op; op = 1; switch (op): { caso 1: { op = 2; } caso 1 + 1: { op = 3; } } }
+
+### erro | int recebe float
+{ int a; a = 2.5; }
+
+### erro | int recebe conta com float
+{ int a; float b; b = 1.5; a = b * 2; }
+
+### erro | int recebe divisão por real
+{ int a; a = 10 / 4.0; }
+
+### erro | switch com variável float
+{ float m; m = 1.0; switch (m): { caso 1: { m = 2.0; } } }
+
+### erro | caso com valor float
+{ int op; op = 1; switch (op): { caso 2.5: { op = 2; } } }
+
+## divisao por zero
+
+### erro | divisão por zero inteiro
+{ int a; int b; b = 5; a = b / 0; }
+
+### erro | divisão por zero real
+{ float a; a = 2.5 / 0.0; }
+
+### erro | divisão por zero entre parênteses
+{ int a; a = (4 + 2) / (0); }
+
+### ok | divisão por número diferente de zero
+{ int a; float b; a = 10 / 2; b = 1.0 / 0.5; }
+
+## print
+
+### ok | print de float
+{ float m; m = 2.5; print(m); }
+
+### erro | print de variavel nao declarada
+{ print(x); }
+
+### erro | print com divisao por zero
+{ print(1 / 0); }

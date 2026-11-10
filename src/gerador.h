@@ -47,10 +47,16 @@ void gera_comando(No* no);
 /*recebe uma lista de comandos e gera em sequencia*/
 void gera_comandos(No*no);
 /*
- * adiciona a operacao binaria referente no asm, sempre usa rcx e rax
+ * adiciona a operacao binaria de int no asm, sempre usa rcx e rax
  * considera que ambos ja estao nos regs, chamar apos os pops
  */
-void gera_op(OpBin op);
+void gera_op_int(OpBin op);
+
+/*
+ * adiciona a operacao binaria de float no asm, usa xmm0 (esquerda) e xmm1 (direita)
+ * o resultado fica em rax: os bits do float numa conta, 0 ou 1 numa comparacao
+ */
+void gera_op_float(OpBin op);
 
 /*
  * devolve um numero de rotulo novo a cada chamada (0, 1, 2, ...)
@@ -70,9 +76,15 @@ void add_rotulo(int rotulo, const char* comentario);
  * compara rax (esquerda) com rcx (direita) e deixa 1 ou 0 em rax
  * comp e a instrucao set do resultado: setl (<), setg (>), sete (==),
  * setne (!=), setle (<=), setge (>=)
- * igual o gera_op, chamar com os 2 valores ja nos regs
+ * igual o gera_op_int, chamar com os 2 valores ja nos regs
  */
 void gera_comparacao(const char* comp);
+
+/*
+ * igual o gera_comparacao, mas compara xmm0 com xmm1 (floats de 32 bits)
+ * usa os set de sem sinal: setb (<), seta (>), setbe (<=), setae (>=)
+ */
+void gera_comparacao_float(const char* comp);
 
 /*
  * gera o codigo de uma condicao (se, enquanto, ...)
