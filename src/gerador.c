@@ -16,16 +16,20 @@ void add_rotulo(int rotulo, const char* comentario){
   fprintf(saida, ".L%d: # %s\n",rotulo, comentario);
 }
 
+//toda variavel tem 8 bytes (por enquanto pelo menos)
+void declara_variavel(Simbolo *s){
+  fprintf(saida, ".lcomm v_%s, 8\n", s->nome);
+}
 
 
 
-//TODO: adicionar variaveis da tabela de simbolo
 int ast_para_asm(No* raiz, FILE* out){
     assert(out != NULL);
     assert(raiz->tipo_no == N_PROGRAMA);
     
     saida = out;
-    //adiciona aqui
+    
+    percorrer_tabela(declara_variavel);
     add_inst(".section .rodata");
     
     //section de codigo, declaramos como se fosse uma main em c, 
@@ -131,13 +135,18 @@ void gera_comandos(No*no){
 
 void gera_cond(No* cond, int rotulo_jump){
   gera_exp(cond); //resultado no topo da pilha
-  add_inst("popq %%rax"); // pop em x86-64 so aceita registrador de 64 bits
+  add_inst("popq %%rax"); 
   add_inst("testq %%rax, %%rax");
   add_inst("je .L%d", rotulo_jump); // verifica flag zf (jump se eax == 0, no caso false)
 }
 
 
 void gera_comando(No* no){
+  /*rotulos usados pelos comandos pular e terminar, os nos devem configurar
+   * seus valores de acordo com o seu contexto, e limpar na saida
+  */
+  static int rotulo_terminar = -1;
+  static int rotulo_pular = -1;
   switch (no->tipo_no){
     case  N_DECL:
       // nao gera instrucao: o espaco da variavel vem da tabela de simbolos
@@ -175,17 +184,111 @@ void gera_comando(No* no){
       }
 
       break;
-    case  N_SWITCH:
-      break;
+    case  N_SWITCH:{
+      /* funciona igual ao switch do C:
+       * 1. compara a variavel com o valor de cada caso, em ordem,
+       *    e pula pro bloco do primeiro caso igual
+       * 2. se nenhum for igual pula pro padrao (ou pro fim, se nao tiver padrao)
+       * 3. os blocos ficam em sequencia no asm, entao sem "terminar"
+       *    um caso continua no proximo (fallthrough), como no C
+       * terminar sai do switch, pular continua valendo pro laco de fora
+       */
+      int rotulo_fim_switch = gera_rotulo();
+      int rotulo_padrao = (no->c != NULL) ? gera_rotulo() : rotulo_fim_switch;
+
+      // um rotulo por caso: como o bloco do N_CASO nao tem campo pra isso,
+      // os numeros sao reservados em sequencia e o caso i usa primeiro_caso + i
+      int primeiro_caso = -1;
+      for(No* caso = no->b; caso != NULL; caso = caso->prox){
+        int r = gera_rotulo();
+        if(primeiro_caso == -1) primeiro_caso = r;
+      }
+
+      //  comparacoes
+      int i = 0;
+      for(No* caso = no->b; caso != NULL; caso = caso->prox, i++){
+        gera_exp(no->a);    // variavel do switch
+        gera_exp(caso->a);  // valor do caso
+        add_inst("popq %%rcx");
+        add_inst("popq %%rax");
+        add_inst("cmpq %%rcx, %%rax");
+        add_inst("je .L%d", primeiro_caso + i);
+      }
+      add_inst("jmp .L%d", rotulo_padrao);
+
+      //  blocos dos casos e do padrao
+      int rotulo_terminar_anterior = rotulo_terminar;
+      rotulo_terminar = rotulo_fim_switch;
+      i = 0;
+      for(No* caso = no->b; caso != NULL; caso = caso->prox, i++){
+        add_rotulo(primeiro_caso + i, "caso");
+        gera_comandos(caso->b);
+      }
+      if(no->c != NULL){
+        add_rotulo(rotulo_padrao, "padrao");
+        gera_comandos(no->c);
+      }
+      add_rotulo(rotulo_fim_switch, "fim switch");
+      rotulo_terminar = rotulo_terminar_anterior; // saindo do escopo
+      break;}
     case  N_CASO:
+      // gerado dentro do N_SWITCH, nunca aparece solto numa lista de comandos
       break;
-    case  N_ENQUANTO:
-      break;
-    case  N_FACA:
-      break;
+    case  N_ENQUANTO:{
+      int rotulo_comeco_loop = gera_rotulo();
+      int rotulo_fim_loop = gera_rotulo();
+      /* verifica a condicao, se falsa pula pra depois do bloco
+       * se verdadeira executa o bloco e depois da jmp pra antes da
+       * condicao, entao verifica novamente
+       * pular volta pra condicao, terminar sai do loop
+       */
+      int rotulo_terminar_anterior = rotulo_terminar; // salvar pra manter escopo
+      int rotulo_pular_anterior = rotulo_pular;
+      rotulo_terminar = rotulo_fim_loop;
+      rotulo_pular = rotulo_comeco_loop;
+
+      add_rotulo(rotulo_comeco_loop, "comeco loop");
+      gera_cond(no->a, rotulo_fim_loop);
+      gera_comandos(no->b);
+      add_inst("jmp .L%d", rotulo_comeco_loop);
+      add_rotulo(rotulo_fim_loop, "fim loop");
+
+      rotulo_terminar = rotulo_terminar_anterior; // saindo do escopo
+      rotulo_pular = rotulo_pular_anterior;
+      break;}
+    case  N_FACA:{
+      int rotulo_comeco_loop = gera_rotulo();
+      int rotulo_cond_loop = gera_rotulo();
+      int rotulo_fim_loop = gera_rotulo();
+
+      /* executa o bloco, entao verifica a condicao
+       * e da jmp pro comeco caso seja true
+       * pular vai pra condicao (nao pro comeco, igual o continue do C)
+       * terminar sai do loop
+       * no N_FACA: a = lista de comandos, b = condicao
+       */
+      int rotulo_terminar_anterior = rotulo_terminar;
+      int rotulo_pular_anterior = rotulo_pular;
+      rotulo_terminar = rotulo_fim_loop;
+      rotulo_pular = rotulo_cond_loop;
+
+      add_rotulo(rotulo_comeco_loop, "comeco loop");
+      gera_comandos(no->a);
+      add_rotulo(rotulo_cond_loop, "condicao loop");
+      gera_cond(no->b, rotulo_fim_loop);
+      add_inst("jmp .L%d", rotulo_comeco_loop);
+      add_rotulo(rotulo_fim_loop, "fim loop");
+
+      rotulo_terminar = rotulo_terminar_anterior;
+      rotulo_pular = rotulo_pular_anterior;
+      break;}
     case  N_PULAR:
+      assert(rotulo_pular != -1); //pular tem q ser dentro de um escopo, analisadores devem ver isso
+      add_inst("jmp .L%d", rotulo_pular);
       break;
     case  N_TERMINAR:
+      assert(rotulo_terminar != -1); //terminar tem q ser dentro de um escopo, analisadores devem ver isso
+      add_inst("jmp .L%d", rotulo_terminar);
       break;
     default:
       break;
