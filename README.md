@@ -4,7 +4,7 @@
 make test
 ```
 
-Resultado esperado: `Total: 59 passaram, 0 falharam`.
+Resultado esperado: `Total: 74 passaram, 0 falharam`.
 
 (Se adicionar mais testes, o resultado esperado vai mudar)
 

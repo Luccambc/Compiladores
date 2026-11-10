@@ -14,6 +14,7 @@
 #include "tabela.h"
 #include "ast.h"
 #include "gerador.h"
+#include "semantico.h"
 int yylex(void);
 void yyerror(const char* s);
 
@@ -221,6 +222,11 @@ int main (int argc, char **argv)
 
 	printf("Analise lexica e sintatica...\n");
 	int resultado = yyparse();
+
+	/* analise semantica: verificacao de tipos, percorrendo a AST */
+	if (resultado == 0)
+		verificar_tipos(raiz);
+
 	int ok = (resultado == 0 && erros_lexicos == 0 && erros_semanticos == 0);
 
 	if (mostrar_ast && ok)

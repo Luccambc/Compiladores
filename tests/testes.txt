@@ -188,3 +188,48 @@ begin a = 1; end
 
 ### erro | tipo: tipo desconhecido (char)
 { char a; }
+
+### ok | tipos: float recebe int
+{ float b; b = 1; }
+
+### ok | tipos: conta entre int e float guardada em float
+{ int a; float b; float c; a = 1; b = 2.5; c = a + b; }
+
+### ok | tipos: conta só com int guardada em int
+{ int a; int b; a = 2; b = a * 3 + 1; }
+
+### ok | tipos: divisão de int por int guardada em int
+{ int a; a = 7 / 2; }
+
+### ok | tipos: comparação com float numa condição
+{ float m; m = 2.5; se (m > 1) { m = 0.5; } }
+
+### ok | tipos: switch com variável e casos int
+{ int op; op = 1; switch (op): { caso 1: { op = 2; } caso 1 + 1: { op = 3; } } }
+
+### erro | tipos: int recebe float
+{ int a; a = 2.5; }
+
+### erro | tipos: int recebe conta com float
+{ int a; float b; b = 1.5; a = b * 2; }
+
+### erro | tipos: int recebe divisão por real
+{ int a; a = 10 / 4.0; }
+
+### erro | tipos: switch com variável float
+{ float m; m = 1.0; switch (m): { caso 1: { m = 2.0; } } }
+
+### erro | tipos: caso com valor float
+{ int op; op = 1; switch (op): { caso 2.5: { op = 2; } } }
+
+### erro | semântico: divisão por zero inteiro
+{ int a; int b; b = 5; a = b / 0; }
+
+### erro | semântico: divisão por zero real
+{ float a; a = 2.5 / 0.0; }
+
+### erro | semântico: divisão por zero entre parênteses
+{ int a; a = (4 + 2) / (0); }
+
+### ok | semântico: divisão por número diferente de zero
+{ int a; float b; a = 10 / 2; b = 1.0 / 0.5; }

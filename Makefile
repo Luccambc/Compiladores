@@ -31,10 +31,10 @@ $(BUILD)/sintatico.tab.c $(BUILD)/sintatico.tab.h: $(SRC)/sintatico.y | $(BUILD)
 $(BUILD)/lex.yy.c: $(SRC)/lexico.l $(BUILD)/sintatico.tab.h
 	$(FLEX) $(FLEXFLAGS) -o $(BUILD)/lex.yy.c $(SRC)/lexico.l
 
-# 3. compila e liga tudo (inclui a tabela de simbolos e a AST)
+# 3. compila e liga tudo (tabela de simbolos, AST, type check e gerador)
 #    -I$(SRC): os arquivos gerados em build/ incluem tabela.h e ast.h, que estao em src/
-$(ALVO): $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/tabela.h $(SRC)/ast.c $(SRC)/ast.h $(SRC)/gerador.c $(SRC)/gerador.h
-	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/ast.c $(SRC)/gerador.c
+$(ALVO): $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/tabela.h $(SRC)/ast.c $(SRC)/ast.h $(SRC)/gerador.c $(SRC)/gerador.h $(SRC)/semantico.c $(SRC)/semantico.h
+	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(BUILD)/sintatico.tab.c $(BUILD)/lex.yy.c $(SRC)/tabela.c $(SRC)/ast.c $(SRC)/gerador.c $(SRC)/semantico.c
 
 test: $(ALVO)
 	./rodar_testes.sh
